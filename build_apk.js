@@ -1,7 +1,7 @@
-﻿'use strict';
+'use strict';
 /**
  * Standalone Android APK Builder for Green Corridor System
- * Compiles resources, Java sources, converts to DEX, packages, and signs GreenCorridor.apk
+ * Compiles resources, Java sources, converts to DEX, packages, aligns, and signs with v1, v2, v3 schemes
  */
 
 const fs = require('fs');
@@ -14,11 +14,11 @@ const BUILD_TOOLS = path.join(ROOT, 'build_tools');
 const AAPT2 = path.join(BUILD_TOOLS, 'aapt2.exe');
 const R8_JAR = path.join(BUILD_TOOLS, 'r8.jar');
 const ANDROID_JAR = path.join(BUILD_TOOLS, 'android.jar');
+const APKSIG_JAR = path.join(BUILD_TOOLS, 'apksig.jar');
 const JAVA_HOME = 'C:\\Program Files\\Microsoft\\jdk-17.0.20.101-hotspot';
 const JAVAC = path.join(JAVA_HOME, 'bin', 'javac.exe');
 const JAVA = path.join(JAVA_HOME, 'bin', 'java.exe');
 const KEYTOOL = path.join(JAVA_HOME, 'bin', 'keytool.exe');
-const JARSIGNER = path.join(JAVA_HOME, 'bin', 'jarsigner.exe');
 const JAR = path.join(JAVA_HOME, 'bin', 'jar.exe');
 
 const OUT_APK = path.join(ROOT, 'GreenCorridor.apk');
@@ -183,7 +183,7 @@ fs.mkdirSync(dexDir, { recursive: true });
 execSync(`"${JAVA}" -cp "${R8_JAR}" com.android.tools.r8.D8 --lib "${ANDROID_JAR}" --output "${dexDir}" ${classFiles.map(c => `"${c}"`).join(' ')}`, { stdio: 'inherit' });
 
 // Add classes.dex into unaligned.apk
-console.log('[Step 5/5] Adding classes.dex and signing APK...');
+console.log('[Step 5/5] Adding classes.dex and packing APK...');
 const classesDex = path.join(dexDir, 'classes.dex');
 process.chdir(dexDir);
 execSync(`"${JAR}" -uf "${unalignedApk}" classes.dex`, { stdio: 'inherit' });
@@ -195,12 +195,21 @@ if (!fs.existsSync(KEYSTORE)) {
   execSync(`"${KEYTOOL}" -genkey -v -keystore "${KEYSTORE}" -storepass ${KEY_PASS} -alias ${KEY_ALIAS} -keypass ${KEY_PASS} -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=GreenCorridor, OU=Emergency, O=Kolhapur, L=Kolhapur, ST=Maharashtra, C=IN"`, { stdio: 'inherit' });
 }
 
-// Copy unaligned to final APK and sign
-fs.copyFileSync(unalignedApk, OUT_APK);
-execSync(`"${JARSIGNER}" -sigalg SHA256withRSA -digestalg SHA-256 -keystore "${KEYSTORE}" -storepass ${KEY_PASS} "${OUT_APK}" ${KEY_ALIAS}`, { stdio: 'inherit' });
+// 4-byte zip alignment
+console.log('Aligning APK (4-byte zip alignment)...');
+const alignedApk = path.join(ANDROID_DIR, 'build', 'aligned.apk');
+execSync(`"${JAVA}" -cp "${BUILD_TOOLS}" ZipAlignHelper "${unalignedApk}" "${alignedApk}"`, { stdio: 'inherit' });
+
+// Cryptographic signing with v1, v2 and v3 schemes using official apksig
+console.log('Cryptographically signing APK with v1, v2, v3 signature schemes...');
+execSync(`"${JAVA}" -cp "${BUILD_TOOLS};${APKSIG_JAR}" SignHelper "${alignedApk}" "${OUT_APK}" "${KEYSTORE}" "${KEY_PASS}" "${KEY_ALIAS}"`, { stdio: 'inherit' });
+
+// Verify signature
+console.log('Verifying APK signature schemes...');
+execSync(`"${JAVA}" -cp "${BUILD_TOOLS};${APKSIG_JAR}" VerifyHelper "${OUT_APK}"`, { stdio: 'inherit' });
 
 console.log('\n================================================================');
-console.log('🎉 ANDROID APK SUCCESSFULLY GENERATED & SIGNED!');
+console.log('🎉 ANDROID APK SUCCESSFULLY GENERATED & VERIFIED FOR ANDROID 11, 12, 13, 14, 15!');
 console.log('📁 Output: ' + OUT_APK);
 console.log('📦 Size:   ' + (fs.statSync(OUT_APK).size / 1024).toFixed(1) + ' KB');
 console.log('================================================================\n');
