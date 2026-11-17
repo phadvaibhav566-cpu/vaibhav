@@ -1,0 +1,8 @@
+node_modules/
+.DS_Store
+Thumbs.db
+*.log
+data/greencorridor.db-shm
+data/greencorridor.db-wal
+server.js.bak
+public/index.html.bak

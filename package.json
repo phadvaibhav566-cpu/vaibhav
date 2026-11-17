@@ -1,0 +1,25 @@
+﻿{
+  "name": "green-corridor-system",
+  "version": "1.0.0",
+  "description": "Emergency Vehicle Green Corridor Management System (Kolhapur) - Zero-Error Full-Stack & Android Suite",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "test": "node test.js",
+    "build:apk": "node build_apk.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "green-corridor",
+    "emergency-vehicle",
+    "ambulance",
+    "traffic-management",
+    "iot",
+    "kolhapur"
+  ],
+  "author": "Vaibhav & Team",
+  "license": "ISC"
+}
