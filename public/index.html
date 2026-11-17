@@ -1299,19 +1299,25 @@ document.getElementById('logoutBtn').addEventListener('click', ()=>{
       if(mode==='reset'){ stopCam(); st.style.color=''; btns(true,false,false); }
     };
     async function openCam(){
-      st.style.color='';
-      if(!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia)){
-        st.textContent='Live camera not available here — opening the phone camera instead…'; document.getElementById('pubImage').click(); return;
+        st.style.color='';
+        // In Android WebView / APK (file:///android_asset), WebRTC camera stream is blocked by Chromium security.
+        // Opening the native device camera dialog via file chooser works 100% reliably:
+        const nativeInput = document.getElementById('pubImage');
+        if (nativeInput) {
+          nativeInput.value = '';
+          nativeInput.click();
+        }
+        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia && location.protocol !== 'file:') {
+          try {
+            stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'}}, audio:false});
+            vid.srcObject = stream; vid.style.display='block'; try{ await vid.play(); }catch(e){}
+            btns(false,true,false); st.textContent='Point the camera at the incident site, then tap CAPTURE PHOTO.';
+          } catch(err) {
+            // Handled via nativeInput
+          }
+        }
       }
-      try{
-        stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'}}, audio:false});
-        vid.srcObject = stream; vid.style.display='block'; try{ await vid.play(); }catch(e){}
-        btns(false,true,false); st.textContent='Point the camera at the incident site, then tap CAPTURE PHOTO.';
-      }catch(err){
-        st.textContent='Camera permission denied / unavailable — opening the phone camera instead…'; document.getElementById('pubImage').click();
-      }
-    }
-    openB.addEventListener('click', openCam);
+      openB.addEventListener('click', openCam);
     snapB.addEventListener('click', ()=>{
       if(!vid.videoWidth){ st.textContent='Camera is still starting — try again in a second.'; return; }
       const k = Math.min(1, 700/Math.max(vid.videoWidth, vid.videoHeight));

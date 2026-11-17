@@ -83,13 +83,44 @@ fs.writeFileSync(path.join(ANDROID_DIR, 'res', 'values', 'strings.xml'), `<?xml 
     <string name="app_name">Green Corridor</string>
 </resources>`, 'utf8');
 
-// 4. ic_launcher (Vector / XML shape)
+// 4. ic_launcher (Aesthetic Emergency Emblem shape)
 const icLauncherPath = path.join(ANDROID_DIR, 'res', 'drawable', 'ic_launcher.xml');
 fs.writeFileSync(icLauncherPath, `<?xml version="1.0" encoding="utf-8"?>
-<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="oval">
-    <solid android:color="#EF4B54" />
-    <size android:width="48dp" android:height="48dp" />
-</shape>`, 'utf8');
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <shape android:shape="oval">
+            <gradient
+                android:angle="135"
+                android:startColor="#1E293B"
+                android:endColor="#0F172A"
+                android:type="linear" />
+            <size android:width="108dp" android:height="108dp" />
+            <stroke android:width="2dp" android:color="#334155" />
+        </shape>
+    </item>
+    <item android:top="14dp" android:bottom="14dp" android:left="14dp" android:right="14dp">
+        <shape android:shape="oval">
+            <gradient
+                android:angle="45"
+                android:startColor="#EF4B54"
+                android:centerColor="#DC2626"
+                android:endColor="#10B981"
+                android:type="linear" />
+        </shape>
+    </item>
+    <item android:top="48dp" android:bottom="48dp" android:left="36dp" android:right="36dp">
+        <shape android:shape="rectangle">
+            <solid android:color="#FFFFFF" />
+            <corners android:radius="4dp" />
+        </shape>
+    </item>
+    <item android:top="36dp" android:bottom="36dp" android:left="48dp" android:right="48dp">
+        <shape android:shape="rectangle">
+            <solid android:color="#FFFFFF" />
+            <corners android:radius="4dp" />
+        </shape>
+    </item>
+</layer-list>`, 'utf8');
 
 // 5. MainActivity.java
 const mainActivityJava = `package com.greencorridor.app;
