@@ -220,6 +220,51 @@
 
   /* ============ DRIVER LAYOUT (map-based, from original prototype) ============ */
   .driver-app{display:grid;grid-template-rows:1fr 128px;grid-template-columns:340px 1fr;grid-template-areas:"sidebar map" "sidebar rail";width:100%;height:100%;}
+    @media (max-width: 860px) {
+      .driver-app {
+        display: flex !important;
+        flex-direction: column !important;
+        height: auto !important;
+        min-height: 100vh !important;
+        overflow-y: auto !important;
+      }
+      .tp-layout {
+        display: flex !important;
+        flex-direction: column !important;
+        height: auto !important;
+      }
+      #map, #mapTP, #mapHosp {
+        min-height: 380px !important;
+        height: 52vh !important;
+        width: 100% !important;
+        position: relative !important;
+        z-index: 10 !important;
+      }
+      .sidebar, .tp-side {
+        width: 100% !important;
+        max-width: 100% !important;
+        border-right: none !important;
+        border-bottom: 1px solid var(--border) !important;
+      }
+      .topbar {
+        padding: 0 10px !important;
+        height: auto !important;
+        min-height: 54px !important;
+        flex-wrap: wrap !important;
+        gap: 8px !important;
+        padding-top: 6px !important;
+        padding-bottom: 6px !important;
+      }
+      .status-row {
+        display: none !important;
+      }
+      .scroll-page {
+        padding: 12px 10px !important;
+      }
+      .grid.cols-4, .grid.cols-3, .grid.cols-2 {
+        grid-template-columns: 1fr !important;
+      }
+    }
   .sidebar{grid-area:sidebar;border-right:1px solid var(--border);background:var(--panel);overflow-y:auto;padding:16px;}
   .section{margin-bottom:16px;border:1px solid var(--border);background:var(--panel-2);border-radius:10px;padding:14px;}
   .section h2{font-family:'Space Grotesk',sans-serif;font-size:11.5px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin:0 0 12px 0;display:flex;align-items:center;gap:6px;}
@@ -964,14 +1009,14 @@ TRIP = {
    database through /api. Opened directly from disk (file://) it keeps working
    in local-only mode unless GC_SERVER_URL below is filled in.
    ================================================================ */
-const GC_SERVER_URL = '';   // optional default: e.g. 'http://localhost:3000'
+const GC_SERVER_URL = 'http://172.27.209.137:3000';   // optional default: e.g. 'http://localhost:3000'
 (function gcServerStorage(){
   const proto = location.protocol;
   const customServer = (typeof localStorage !== 'undefined' ? localStorage.getItem('gc_server_url') : null);
   const SERVER = customServer ? customServer.replace(/\/+$/, '') : ((proto==='http:' || proto==='https:') ? '' : String(GC_SERVER_URL||'http://localhost:3000').replace(/\/+$/,''));
 
   const LS = (()=>{ try{ localStorage.setItem('__gc','1'); localStorage.removeItem('__gc'); return localStorage; }catch(e){ return null; } })();
-  const SS = (()=>{ try{ sessionStorage.setItem('__gc','1'); sessionStorage.removeItem('__gc'); return sessionStorage; }catch(e){ return null; } })();
+  const SS = (()=>{ try{ localStorage.setItem('__gc_s','1'); localStorage.removeItem('__gc_s'); return localStorage; }catch(e){ return null; } })();
   const mem = {};
   let lastSeen = null, lastRev = 0, cache = null, online = null;
 
@@ -1057,7 +1102,7 @@ const GC_SERVER_URL = '';   // optional default: e.g. 'http://localhost:3000'
   if(window.storage && typeof window.storage.get==='function') return;
   let sharedStore=null, personalStore=null;
   try{ localStorage.setItem('__gc_t','1'); localStorage.removeItem('__gc_t'); sharedStore=localStorage; }catch(e){}
-  try{ sessionStorage.setItem('__gc_t','1'); sessionStorage.removeItem('__gc_t'); personalStore=sessionStorage; }catch(e){}
+  try{ localStorage.setItem('__gc_t','1'); localStorage.removeItem('__gc_t'); personalStore=localStorage; }catch(e){}
   const mem={shared:{},personal:{}};
   const bag=(shared)=> shared ? mem.shared : mem.personal;
   const st=(shared)=> shared ? sharedStore : personalStore;
@@ -1538,7 +1583,7 @@ function openDashboardForRole(role){
   document.getElementById('dash-'+role).classList.add('active');
   document.getElementById('roleChipText').textContent = `${CURRENT_USER.fullName} · ${ROLE_LABELS[role]}`;
 
-  if(role==='DRIVER'){ initDriverDash(); setTimeout(()=>{ if(map) map.invalidateSize(); }, 120); }
+  if(role==='DRIVER'){ initDriverDash(); setTimeout(()=>{ if(map) { map.invalidateSize(); map.invalidateSize(true); } }, 120); setTimeout(()=>{ if(map) map.invalidateSize(); }, 600); }
   if(role==='MEDICAL_STAFF') renderMedicalDash();
   if(role==='TRAFFIC_POLICE'){ initTrafficDash(); setTimeout(()=>{ if(mapTP) mapTP.invalidateSize(); }, 120); }
   if(role==='HOSPITAL'){ renderHospitalDash(); setTimeout(()=>{ if(mapHosp) mapHosp.invalidateSize(); }, 120); }
@@ -2771,6 +2816,22 @@ setInterval(async ()=>{
     openDashboardForRole(CURRENT_USER.role);
   }
 })();
+
+  // Mobile step-by-step Back navigation helper
+  window.addEventListener('popstate', function(e) {
+    // If public emergency report screen is open, back goes to login screen
+    const pubWrap = document.getElementById('publicWrap');
+    if (pubWrap && pubWrap.style.display !== 'none') {
+      pubWrap.style.display = 'none';
+      document.getElementById('loginWrap').style.display = 'flex';
+      return;
+    }
+  });
+  // Push initial state so back key is captured
+  if (window.history && window.history.pushState) {
+    window.history.pushState({ page: 'home' }, '');
+  }
+
 window.addEventListener('resize', ()=>{
   if(typeof map!=='undefined' && map) map.invalidateSize();
   if(typeof mapTP!=='undefined' && mapTP) mapTP.invalidateSize();
